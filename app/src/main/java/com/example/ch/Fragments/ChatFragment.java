@@ -28,12 +28,14 @@ import com.example.ch.ViewHolders.ChatInfoHolder;
 import com.firebase.ui.auth.data.model.User;
 import com.firebase.ui.database.FirebaseRecyclerAdapter;
 import com.firebase.ui.database.FirebaseRecyclerOptions;
+import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.Query;
 import com.google.firebase.database.ValueEventListener;
+import com.google.firebase.messaging.FirebaseMessaging;
 
 import java.text.SimpleDateFormat;
 
@@ -125,8 +127,17 @@ public class ChatFragment extends Fragment {
                                             UserModel userModel = snapshot.getValue(UserModel.class);
                                             Common.chatUser = userModel;
                                             Common.chatUser.setUid(snapshot.getKey());
-                                            startActivity(new Intent(getContext(), ChatActivity.class));
-                                            // adapter.notifyItemChanged(position); // fuck didn't work
+
+                                            String roomId = Common.generateChatRoomId(FirebaseAuth.getInstance()
+                                                    .getCurrentUser().getUid(), Common.chatUser.getUid());
+                                            Common.roomSelected = roomId;
+
+                                            // Register Topic
+                                            FirebaseMessaging.getInstance().subscribeToTopic(roomId)
+                                                    .addOnSuccessListener(unused -> {
+                                                        startActivity(new Intent(getContext(), ChatActivity.class));
+                                                    });
+
                                         }
                                     }
 

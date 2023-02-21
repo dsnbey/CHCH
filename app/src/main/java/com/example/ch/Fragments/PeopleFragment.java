@@ -32,6 +32,7 @@ import com.firebase.ui.database.FirebaseRecyclerOptions;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.Query;
+import com.google.firebase.messaging.FirebaseMessaging;
 
 public class PeopleFragment extends Fragment {
 
@@ -92,7 +93,17 @@ public class PeopleFragment extends Fragment {
                     holder.itemView.setOnClickListener(view -> {
                         Common.chatUser = model;
                         Common.chatUser.setUid(adapter.getRef(position).getKey());
-                        startActivity(new Intent(getContext(), ChatActivity.class));
+                        String roomId = Common.generateChatRoomId(FirebaseAuth.getInstance()
+                                .getCurrentUser().getUid(), Common.chatUser.getUid());
+                        Common.roomSelected = roomId;
+
+                        Log.d("ROOM_ID", roomId);
+
+                        // Register Topic
+                        FirebaseMessaging.getInstance().subscribeToTopic(roomId)
+                                .addOnSuccessListener(unused -> {
+                                    startActivity(new Intent(getContext(), ChatActivity.class));
+                                });
                         onDestroy();
                     });
 
