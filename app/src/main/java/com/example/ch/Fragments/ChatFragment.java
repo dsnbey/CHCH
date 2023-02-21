@@ -2,6 +2,7 @@ package com.example.ch.Fragments;
 
 import androidx.lifecycle.ViewModelProvider;
 
+import android.content.Intent;
 import android.os.Bundle;
 
 import androidx.annotation.NonNull;
@@ -14,7 +15,9 @@ import androidx.recyclerview.widget.RecyclerView;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Toast;
 
+import com.example.ch.ChatActivity;
 import com.example.ch.Common.Common;
 import com.example.ch.Models.ChatInfoModel;
 import com.example.ch.Models.UserModel;
@@ -22,11 +25,15 @@ import com.example.ch.R;
 import com.example.ch.TextDrawable.ColorGenerator;
 import com.example.ch.TextDrawable.TextDrawable;
 import com.example.ch.ViewHolders.ChatInfoHolder;
+import com.firebase.ui.auth.data.model.User;
 import com.firebase.ui.database.FirebaseRecyclerAdapter;
 import com.firebase.ui.database.FirebaseRecyclerOptions;
 import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.database.DataSnapshot;
+import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.Query;
+import com.google.firebase.database.ValueEventListener;
 
 import java.text.SimpleDateFormat;
 
@@ -43,6 +50,18 @@ public class ChatFragment extends Fragment {
     FirebaseRecyclerAdapter adapter;
 
     RecyclerView recyclerViewChat;
+
+
+    @Override
+    public void onResume() {
+        if (adapter != null) {
+            adapter.startListening();
+        }
+        super.onResume();
+    }
+
+
+
 
     public static ChatFragment getInstance() {
         return instance == null ? new ChatFragment() : instance;
@@ -94,7 +113,29 @@ public class ChatFragment extends Fragment {
 
                     // Event
                     holder.itemView.setOnClickListener(view -> {
-                        // TODO
+                        // Go to chat detail
+                        FirebaseDatabase.getInstance().getReference(Common.USER_REFERENCE)
+                                .child(FirebaseAuth.getInstance().getCurrentUser().getUid()
+                                .equals(model.getCreateId()) ?
+                                model.getFriendId() : model.getCreateId())
+                                .addListenerForSingleValueEvent(new ValueEventListener() {
+                                    @Override
+                                    public void onDataChange(@NonNull DataSnapshot snapshot) {
+                                        if (snapshot.exists()) {
+                                            UserModel userModel = snapshot.getValue(UserModel.class);
+                                            Common.chatUser = userModel;
+                                            Common.chatUser.setUid(snapshot.getKey());
+                                            startActivity(new Intent(getContext(), ChatActivity.class));
+                                            // adapter.notifyItemChanged(position); // fuck didn't work
+                                        }
+                                    }
+
+                                    @Override
+                                    public void onCancelled(@NonNull DatabaseError error) {
+                                        Toast.makeText(getContext(), error.getMessage(), Toast.LENGTH_SHORT).show();
+                                    }
+                                });
+
                     });
 
                 }
@@ -105,6 +146,9 @@ public class ChatFragment extends Fragment {
                 }
             }
         };
+
+        adapter.startListening();
+        recyclerViewChat.setAdapter(adapter);
     }
 
     private void initView(View itemView) {
@@ -118,11 +162,16 @@ public class ChatFragment extends Fragment {
     public void onStart() {
         super.onStart();
         if (adapter != null) adapter.startListening();
+        else loadChatList();
     }
 
     @Override
     public void onStop() {
-        if (adapter != null) adapter.stopListening();
+
+        if (adapter != null) {
+            adapter.stopListening();
+            adapter = null;
+        }
         super.onStop();
     }
 

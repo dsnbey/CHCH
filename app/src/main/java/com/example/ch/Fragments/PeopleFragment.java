@@ -1,5 +1,7 @@
 package com.example.ch.Fragments;
 
+import static android.content.ContentValues.TAG;
+
 import androidx.lifecycle.ViewModelProvider;
 
 import android.content.Intent;
@@ -12,6 +14,7 @@ import androidx.recyclerview.widget.DividerItemDecoration;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -43,6 +46,8 @@ public class PeopleFragment extends Fragment {
     }
 
 
+
+
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container,
                              @Nullable Bundle savedInstanceState) {
@@ -70,6 +75,7 @@ public class PeopleFragment extends Fragment {
             @Override
             protected void onBindViewHolder(@NonNull UserViewHolder holder, int position, @NonNull UserModel model) {
                 if (!adapter.getRef(position).getKey().equals(FirebaseAuth.getInstance().getCurrentUser().getUid())) {
+
                     // Hide
                     ColorGenerator generator = ColorGenerator.MATERIAL;
                     int color = generator.getColor(FirebaseAuth.getInstance().getCurrentUser().getUid());
@@ -87,6 +93,7 @@ public class PeopleFragment extends Fragment {
                         Common.chatUser = model;
                         Common.chatUser.setUid(adapter.getRef(position).getKey());
                         startActivity(new Intent(getContext(), ChatActivity.class));
+                        onDestroy();
                     });
 
                 }
@@ -97,14 +104,17 @@ public class PeopleFragment extends Fragment {
             }
         };
 
+
         adapter.startListening();
         recyclerViewPeople.setAdapter(adapter);
+
     }
 
     private void initView(View itemView) {
         recyclerViewPeople = itemView.findViewById(R.id.recycler_people);
         LinearLayoutManager layoutManager = new LinearLayoutManager(getContext());
         recyclerViewPeople.setLayoutManager(layoutManager);
+        recyclerViewPeople.setItemAnimator(null);
         recyclerViewPeople.addItemDecoration(new DividerItemDecoration(getContext(), layoutManager.getOrientation()));
 
     }
@@ -120,11 +130,25 @@ public class PeopleFragment extends Fragment {
     public void onStart() {
         super.onStart();
         if (adapter != null) adapter.startListening();
+        else loadPeople();
+
+    }
+
+    @Override
+    public void onResume() {
+        if (adapter != null) {
+            adapter.startListening();
+        }
+        super.onResume();
     }
 
     @Override
     public void onStop() {
-        if (adapter != null) adapter.stopListening();
+        if (adapter != null) {
+            adapter.stopListening();
+            adapter = null;
+        }
+
         super.onStop();
     }
 }
